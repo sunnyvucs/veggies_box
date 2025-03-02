@@ -8,12 +8,18 @@
 </head>
 <body class="bg-gray-100 p-4">
     <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
-        <h2 class="text-xl font-bold mb-4">Select Your Vegetables (Max 16)</h2>
+        <h2 class="text-xl font-bold mb-4">Select Your Vegetables (Max 14)</h2>
+        
         <p class="text-sm text-gray-600 mb-2">Section 1: Choose each vegetable once</p>
-        <div id="section1" class="mb-4"></div>
+        <div id="section1" class="grid grid-cols-3 gap-4 mb-4"></div>
+        
         <p class="text-sm text-gray-600 mb-2">Section 2: Choose each vegetable up to twice</p>
-        <div id="section2" class="grid grid-cols-2 gap-4"></div>
-        <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/16</p>
+        <div id="section2" class="grid grid-cols-2 gap-4 mb-4"></div>
+        
+        <p class="text-sm text-gray-600 mb-2">Section 3: Complimentary Vegetables (Auto-included)</p>
+        <div id="section3" class="grid grid-cols-2 gap-4 mb-4"></div>
+        
+        <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/14</p>
         <button onclick="submitSelection()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded">Submit</button>
     </div>
     
@@ -21,6 +27,7 @@
         const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6ScA16RqJQwqQsusoqHTqTmoRfApVDoGiBm92NoIbvLDBkVd9wu_YHIgAiCcZkXjSCZ1fXjwnzv8N/pub?output=csv";
         let section1 = [];
         let section2 = [];
+        let section3 = [];
         let totalSelected = 0;
         let selections = {};
         
@@ -34,12 +41,15 @@
                     const cols = row.split(",");
                     const name = cols[0].trim();
                     const section = cols[1].trim();
-                    const imageUrl = cols[2]?.trim(); // Image URL column
+                    const weight = cols[2]?.trim();
+                    const imageUrl = cols[3]?.trim();
                     
                     if (section === "1") {
-                        section1.push({ name, imageUrl });
+                        section1.push({ name, weight, imageUrl });
                     } else if (section === "2") {
-                        section2.push({ name, imageUrl });
+                        section2.push({ name, weight, imageUrl });
+                    } else if (section === "3") {
+                        section3.push({ name, weight, imageUrl });
                     }
                 });
                 renderVegetables();
@@ -48,23 +58,30 @@
             }
         }
         
-        function createVegetableSelection(section, containerId, maxSelection, isGrid = false) {
+        function createVegetableSelection(section, containerId, maxSelection, isCheckbox) {
             const container = document.getElementById(containerId);
             section.forEach(veg => {
                 const div = document.createElement("div");
-                div.className = isGrid ? "flex flex-col items-center border p-2 rounded shadow" : "flex items-center mb-2";
+                div.className = "flex flex-col items-center border p-2 rounded shadow bg-white";
                 div.innerHTML = `
                     <img src="${veg.imageUrl}" alt="${veg.name}" class="w-16 h-16 mb-2 object-cover rounded" onerror="this.style.display='none'">
-                    <label class="block text-center">${veg.name}</label>
-                    <div class="flex items-center">
+                    <label class="block text-center font-semibold">${veg.name}</label>
+                    <p class="text-sm text-gray-500">Approx: ${veg.weight}</p>
+                    ${isCheckbox ? `<input type="checkbox" id="${veg.name}" onchange="toggleCheckbox('${veg.name}')">` : `
+                    <div class="flex items-center mt-2">
                         <button onclick="changeSelection('${veg.name}', -1, ${maxSelection})" class="bg-red-500 text-white px-2 py-1 rounded">-</button>
                         <span id="${veg.name}" class="mx-2">0</span>
                         <button onclick="changeSelection('${veg.name}', 1, ${maxSelection})" class="bg-green-500 text-white px-2 py-1 rounded">+</button>
-                    </div>
+                    </div>`}
                 `;
                 container.appendChild(div);
                 selections[veg.name] = 0;
             });
+        }
+        
+        function toggleCheckbox(veg) {
+            selections[veg] = document.getElementById(veg).checked ? 1 : 0;
+            updateTotalCount();
         }
         
         function changeSelection(veg, change, max) {
@@ -72,8 +89,8 @@
             if (newValue < 0 || newValue > max) return;
             
             let newTotal = totalSelected - selections[veg] + newValue;
-            if (newTotal > 16) {
-                alert("Total selection cannot exceed 16");
+            if (newTotal > 14) {
+                alert("Total selection cannot exceed 14");
                 return;
             }
             
@@ -95,8 +112,9 @@
         }
         
         function renderVegetables() {
-            createVegetableSelection(section1, "section1", 1);
-            createVegetableSelection(section2, "section2", 2, true);
+            createVegetableSelection(section1, "section1", 1, true);
+            createVegetableSelection(section2, "section2", 2, false);
+            createVegetableSelection(section3, "section3", 0, false);
         }
         
         fetchVegetables();
