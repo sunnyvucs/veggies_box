@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vegetable Selection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <h2 class="text-xl font-bold mb-4">Select Your Vegetables (Max 14)</h2>
+        
+        <p class="text-sm text-gray-600 mb-2">Section 1: Choose each vegetable once</p>
+        <div id="section1" class="grid grid-cols-3 gap-4 mb-4"></div>
+        
+        <p class="text-sm text-gray-600 mb-2">Section 2: Choose each vegetable up to twice</p>
+        <div id="section2" class="grid grid-cols-3 gap-4 mb-4"></div>
+        
+        <p class="text-sm text-gray-600 mb-2">Section 3: Complimentary Vegetables (Auto-included)</p>
+        <div id="section3" class="grid grid-cols-3 gap-4 mb-4"></div>
+        
+        <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/14</p>
+        <button onclick="submitSelection()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded" id="submitButton" disabled>Submit</button>
+    </div>
+    
+    <script>
+        // Fetch customer details from localStorage
+        const customerPhone = localStorage.getItem("customerPhone");
+        const customerName = localStorage.getItem("customerName");
+        const customerAddress = localStorage.getItem("customerAddress");
+
+        if (!customerPhone) {
+            alert("No customer details found. Please verify first.");
+            window.location.href = "customer.html";
+        }
+
+        const vegSheetURL = "YOUR_GOOGLE_SHEET_CSV_URL";  // Replace with your Google Sheet CSV link
+        let section1 = [], section2 = [], section3 = [], selections = {};
+        
+        async function fetchVegetables() {
+            try {
+                const response = await fetch(vegSheetURL);
+                const data = await response.text();
+                const rows = data.split("\n").slice(1);
+                
+                rows.forEach(row => {
+                    const cols = row.split(",");
+                    const name = cols[0].trim();
+                    const section = cols[1].trim();
+                    const weight = cols[2]?.trim();
+                    const imageUrl = cols[3]?.trim() || "https://via.placeholder.com/100";
+                    
+                    if (section === "1") section1.push({ name, weight, imageUrl });
+                    else if (section === "2") section2.push({ name, weight, imageUrl });
+                    else if (section === "3") section3.push({ name, weight, imageUrl });
+                });
+                renderVegetables();
+            } catch (error) {
+                console.error("Error fetching data: ", error);
+            }
+        }
+        
+        function renderVegetables() {
+            const createVegItem = (veg, isSection2 = false) => {
+                return `<div class='p-2 bg-gray-200 rounded text-center'>
+                    <img src='${veg.imageUrl}' class='w-full h-24 object-cover rounded mb-2'>
+                    <p class='text-sm font-semibold'>${veg.name} (${veg.weight})</p>
+                    ${isSection2 ? `<button onclick='adjustSelection("${veg.name}", -1)' class='px-2'>-</button> <span id='count_${veg.name}'>0</span> <button onclick='adjustSelection("${veg.name}", 1)' class='px-2'>+</button>` : `<input type='checkbox' onchange='toggleSelection("${veg.name}")'>`}
+                </div>`;
+            };
+            document.getElementById("section1").innerHTML = section1.map(veg => createVegItem(veg)).join(" ");
+            document.getElementById("section2").innerHTML = section2.map(veg => createVegItem(veg, true)).join(" ");
+            document.getElementById("section3").innerHTML = section3.map(veg => `<div class='p-2 bg-gray-200 rounded text-center'>
+                <img src='${veg.imageUrl}' class='w-full h-24 object-cover rounded mb-2'>
+                <p class='text-sm font-semibold'>${veg.name} (${veg.weight})</p>
+            </div>`).join(" ");
+        }
+        
+        fetchVegetables();
+    </script>
+</body>
+</html>
