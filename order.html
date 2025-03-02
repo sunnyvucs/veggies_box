@@ -3,115 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Vegetables</title>
+    <title>Place Your Order</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-4">
     <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
-        <h2 class="text-xl font-bold mb-4">Select Your Vegetables (Max 14)</h2>
+        <h2 class="text-xl font-bold mb-4">Place Your Order</h2>
 
-        <p class="text-sm text-gray-600 mb-2">Section 1: Choose each vegetable once</p>
-        <div id="section1" class="grid grid-cols-3 gap-4 mb-4"></div>
+        <div class="mb-4">
+            <label class="block text-sm font-semibold">Phone Number:</label>
+            <input type="text" id="customerPhone" class="w-full p-2 border rounded" placeholder="Enter phone number">
+        </div>
 
-        <p class="text-sm text-gray-600 mb-2">Section 2: Choose each vegetable up to twice</p>
-        <div id="section2" class="grid grid-cols-3 gap-4 mb-4"></div>
+        <div id="customerDetails" class="hidden mb-4">
+            <label class="block text-sm font-semibold">Name:</label>
+            <input type="text" id="customerName" class="w-full p-2 border rounded">
+            
+            <label class="block text-sm font-semibold mt-2">Address:</label>
+            <input type="text" id="customerAddress" class="w-full p-2 border rounded">
+        </div>
 
-        <p class="text-sm text-gray-600 mb-2">Section 3: Complimentary Vegetables (Auto-included)</p>
-        <div id="section3" class="grid grid-cols-3 gap-4 mb-4"></div>
+        <h3 class="text-lg font-semibold mt-4">Select Vegetables</h3>
+        <p class="text-sm text-gray-600 mb-2">Maximum 14 vegetables allowed.</p>
+        <div id="vegetableList" class="grid grid-cols-3 gap-4 mb-4"></div>
 
         <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/14</p>
-        <button onclick="submitSelection()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded" id="submitButton" disabled>Submit Order</button>
+        <button onclick="submitOrder()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded" id="submitButton" disabled>Submit Order</button>
     </div>
 
     <script>
-        const vegSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6ScA16RqJQwqQsusoqHTqTmoRfApVDoGiBm92NoIbvLDBkVd9wu_YHIgAiCcZkXjSCZ1fXjwnzv8N/pub?output=csv";
-        const orderFormURL = "https://docs.google.com/forms/d/e/YOUR_GOOGLE_FORM_ID/formResponse"; // Replace with actual Google Form ID
+        const orderFormURL = "https://docs.google.com/forms/d/e/1FAIpQLSfmu4toOaZbFPzQbCDn5dJfVAJrp9ggMz5ChPnlMdDeJALpFA/formResponse";
 
-        let section1 = [], section2 = [], section3 = [], selections = [];
+        // Assume these entry IDs (replace them with actual ones from Google Form)
+        const entryOrderNumber = "entry.1234567890";  // Order Number
+        const entryOrderDateTime = "entry.9876543210"; // Order Date Time
+        const entryItemsSelected = "entry.5678901234"; // Items Selected
+        const entryCustomerPhone = "entry.1357924680"; // Customer Phone Number
 
-        async function fetchVegetables() {
-            try {
-                const response = await fetch(vegSheetURL);
-                const data = await response.text();
-                const rows = data.split("\n").slice(1);
-
-                rows.forEach(row => {
-                    const cols = row.split(",");
-                    const name = cols[0].trim();
-                    const section = cols[1].trim();
-                    const weight = cols[2]?.trim();
-                    const imageUrl = cols[3]?.trim() || "https://via.placeholder.com/100";
-
-                    if (section === "1") section1.push({ name, weight, imageUrl });
-                    else if (section === "2") section2.push({ name, weight, imageUrl });
-                    else if (section === "3") section3.push({ name, weight, imageUrl });
-                });
-
-                renderVegetables();
-            } catch (error) {
-                console.error("Error fetching data: ", error);
-            }
-        }
+        let vegetables = [
+            { name: "Tomato", imageUrl: "https://via.placeholder.com/100" },
+            { name: "Potato", imageUrl: "https://via.placeholder.com/100" },
+            { name: "Carrot", imageUrl: "https://via.placeholder.com/100" },
+            { name: "Onion", imageUrl: "https://via.placeholder.com/100" }
+        ];
+        let selectedVeggies = [];
 
         function renderVegetables() {
-            const createVegItem = (veg, isSection2 = false) => {
-                return `<div class='p-2 bg-gray-200 rounded text-center'>
-                    <img src='${veg.imageUrl}' class='w-full h-24 object-cover rounded mb-2'>
-                    <p class='text-sm font-semibold'>${veg.name} (${veg.weight})</p>
-                    ${isSection2 ? `<button onclick='adjustSelection("${veg.name}", -1)' class='px-2'>-</button> <span id='count_${veg.name}'>0</span> <button onclick='adjustSelection("${veg.name}", 1)' class='px-2'>+</button>` : `<input type='checkbox' onchange='toggleSelection("${veg.name}")'>`}
-                </div>`;
-            };
-            document.getElementById("section1").innerHTML = section1.map(veg => createVegItem(veg)).join(" ");
-            document.getElementById("section2").innerHTML = section2.map(veg => createVegItem(veg, true)).join(" ");
-            document.getElementById("section3").innerHTML = section3.map(veg => `<div class='p-2 bg-gray-200 rounded text-center'>
-                <img src='${veg.imageUrl}' class='w-full h-24 object-cover rounded mb-2'>
-                <p class='text-sm font-semibold'>${veg.name} (${veg.weight})</p>
-            </div>`).join(" ");
+            let vegList = document.getElementById("vegetableList");
+            vegList.innerHTML = "";
+            vegetables.forEach((veg, index) => {
+                vegList.innerHTML += `
+                    <div class='p-2 bg-gray-200 rounded text-center'>
+                        <img src='${veg.imageUrl}' class='w-full h-24 object-cover rounded mb-2'>
+                        <p class='text-sm font-semibold'>${veg.name}</p>
+                        <input type='checkbox' onchange='toggleVegetable("${veg.name}")'>
+                    </div>`;
+            });
         }
 
-        function toggleSelection(vegName) {
-            if (selections.includes(vegName)) {
-                selections = selections.filter(item => item !== vegName);
-            } else {
-                selections.push(vegName);
+        function toggleVegetable(vegName) {
+            if (selectedVeggies.includes(vegName)) {
+                selectedVeggies = selectedVeggies.filter(v => v !== vegName);
+            } else if (selectedVeggies.length < 14) {
+                selectedVeggies.push(vegName);
             }
-            document.getElementById("totalCount").innerText = selections.length;
-            document.getElementById("submitButton").disabled = selections.length === 0;
+            document.getElementById("totalCount").innerText = selectedVeggies.length;
+            document.getElementById("submitButton").disabled = selectedVeggies.length === 0;
         }
 
         function generateOrderNumber() {
             return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
-        async function submitSelection() {
-            const phone = localStorage.getItem("customerPhone");
-            if (!phone) {
-                alert("Customer details not found! Please enter phone number first.");
+        function submitOrder() {
+            let phone = document.getElementById("customerPhone").value;
+            if (!phone || selectedVeggies.length === 0) {
+                alert("Please enter phone number and select at least one vegetable.");
                 return;
             }
 
-            const orderNumber = generateOrderNumber();
-            const orderDateTime = new Date().toLocaleString();
-            const selectedVeggies = selections.join(", ");
+            let orderNumber = generateOrderNumber();
+            let orderDateTime = new Date().toLocaleString();
+            let itemsSelected = selectedVeggies.join(", ");
 
-            const formData = new FormData();
-            formData.append("entry.YOUR_ORDER_NUMBER_FIELD", orderNumber);
-            formData.append("entry.YOUR_ORDER_DATE_FIELD", orderDateTime);
-            formData.append("entry.YOUR_ITEMS_SELECTED_FIELD", selectedVeggies);
-            formData.append("entry.YOUR_PHONE_FIELD", phone);
+            let formData = new FormData();
+            formData.append(entryOrderNumber, orderNumber);
+            formData.append(entryOrderDateTime, orderDateTime);
+            formData.append(entryItemsSelected, itemsSelected);
+            formData.append(entryCustomerPhone, phone);
 
-            try {
-                await fetch(orderFormURL, { method: "POST", body: formData });
-                alert("Order submitted successfully!");
-                selections = [];
-                document.getElementById("totalCount").innerText = "0";
-                document.getElementById("submitButton").disabled = true;
-            } catch (error) {
-                console.error("Error submitting order:", error);
-            }
+            fetch(orderFormURL, {
+                method: "POST",
+                body: formData
+            }).then(response => {
+                alert("Order Submitted Successfully!");
+                window.location.href = "confirmation.html"; // Redirect to confirmation page
+            }).catch(error => {
+                console.error("Error:", error);
+                alert("Failed to submit order. Try again.");
+            });
         }
 
-        fetchVegetables();
+        renderVegetables();
     </script>
 </body>
 </html>
