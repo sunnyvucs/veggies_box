@@ -48,37 +48,38 @@
             }
         }
         
-        function createCheckboxes(section, containerId, maxSelection, isGrid = false) {
+        function createVegetableSelection(section, containerId, maxSelection, isGrid = false) {
             const container = document.getElementById(containerId);
             section.forEach(veg => {
                 const div = document.createElement("div");
                 div.className = isGrid ? "flex flex-col items-center border p-2 rounded shadow" : "flex items-center mb-2";
                 div.innerHTML = `
                     <img src="${veg.imageUrl}" alt="${veg.name}" class="w-16 h-16 mb-2 object-cover rounded" onerror="this.style.display='none'">
-                    <label>${veg.name}</label>
-                    <input type="number" min="0" max="${maxSelection}" value="0" id="${veg.name}" onchange="updateSelection('${veg.name}', ${maxSelection})" class="w-16 border p-1 mx-2 text-center">
+                    <label class="block text-center">${veg.name}</label>
+                    <div class="flex items-center">
+                        <button onclick="changeSelection('${veg.name}', -1, ${maxSelection})" class="bg-red-500 text-white px-2 py-1 rounded">-</button>
+                        <span id="${veg.name}" class="mx-2">0</span>
+                        <button onclick="changeSelection('${veg.name}', 1, ${maxSelection})" class="bg-green-500 text-white px-2 py-1 rounded">+</button>
+                    </div>
                 `;
                 container.appendChild(div);
                 selections[veg.name] = 0;
             });
         }
         
-        function updateSelection(veg, max) {
-            let newValue = parseInt(document.getElementById(veg).value) || 0;
-            if (newValue > max) {
-                newValue = max;
-                document.getElementById(veg).value = max;
-            }
+        function changeSelection(veg, change, max) {
+            let newValue = selections[veg] + change;
+            if (newValue < 0 || newValue > max) return;
             
             let newTotal = totalSelected - selections[veg] + newValue;
             if (newTotal > 16) {
                 alert("Total selection cannot exceed 16");
-                document.getElementById(veg).value = selections[veg];
                 return;
             }
             
             selections[veg] = newValue;
             totalSelected = newTotal;
+            document.getElementById(veg).innerText = newValue;
             document.getElementById("totalCount").innerText = totalSelected;
         }
         
@@ -94,8 +95,8 @@
         }
         
         function renderVegetables() {
-            createCheckboxes(section1, "section1", 1);
-            createCheckboxes(section2, "section2", 2, true);
+            createVegetableSelection(section1, "section1", 1);
+            createVegetableSelection(section2, "section2", 2, true);
         }
         
         fetchVegetables();
