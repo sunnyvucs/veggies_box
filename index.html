@@ -27,10 +27,10 @@
         <div id="section1" class="grid grid-cols-3 gap-4 mb-4"></div>
         
         <p class="text-sm text-gray-600 mb-2">Section 2: Choose each vegetable up to twice</p>
-        <div id="section2" class="grid grid-cols-2 gap-4 mb-4"></div>
+        <div id="section2" class="grid grid-cols-3 gap-4 mb-4"></div>
         
         <p class="text-sm text-gray-600 mb-2">Section 3: Complimentary Vegetables (Auto-included)</p>
-        <div id="section3" class="grid grid-cols-2 gap-4 mb-4"></div>
+        <div id="section3" class="grid grid-cols-3 gap-4 mb-4"></div>
         
         <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/14</p>
         <button onclick="submitSelection()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded" disabled id="submitButton">Submit</button>
@@ -38,12 +38,9 @@
     
     <script>
         const vegSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6ScA16RqJQwqQsusoqHTqTmoRfApVDoGiBm92NoIbvLDBkVd9wu_YHIgAiCcZkXjSCZ1fXjwnzv8N/pub?output=csv";
-        const orderSheetURL = "https://docs.google.com/forms/d/e/1FAIpQLSd7nXe4/edit";
-        const customerSheetURL = "https://docs.google.com/forms/d/e/1FAIpQLSfCustomer/edit";
         let section1 = [];
         let section2 = [];
         let section3 = [];
-        let totalSelected = 0;
         let selections = {};
         
         async function fetchVegetables() {
@@ -102,7 +99,7 @@
         }
         
         function updateTotal() {
-            totalSelected = Object.values(selections).reduce((a, b) => a + b, 0);
+            const totalSelected = Object.values(selections).reduce((a, b) => a + b, 0);
             document.getElementById("totalCount").innerText = totalSelected;
             document.getElementById("submitButton").disabled = totalSelected > 14;
         }
