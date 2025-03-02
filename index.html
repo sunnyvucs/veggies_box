@@ -57,7 +57,7 @@
                     const name = cols[0].trim();
                     const section = cols[1].trim();
                     const weight = cols[2]?.trim();
-                    const imageUrl = cols[3]?.trim();
+                    const imageUrl = cols[3]?.trim() || "https://via.placeholder.com/100";
                     
                     if (section === "1") {
                         section1.push({ name, weight, imageUrl });
@@ -73,34 +73,38 @@
             }
         }
         
-        function fetchCustomerDetails() {
-            const phone = document.getElementById("customerPhone").value;
-            if (!phone) return;
-            document.getElementById("customerDetails").classList.remove("hidden");
-            document.getElementById("submitButton").disabled = false;
+        function renderVegetables() {
+            const createVegItem = (veg, isSection2 = false) => {
+                return `<div class='p-2 bg-gray-200 rounded text-center'>
+                    <img src='${veg.imageUrl}' class='w-full h-24 object-cover rounded mb-2'>
+                    <p class='text-sm font-semibold'>${veg.name} (${veg.weight})</p>
+                    ${isSection2 ? `<button onclick='adjustSelection("${veg.name}", -1)' class='px-2'>-</button> <span id='count_${veg.name}'>0</span> <button onclick='adjustSelection("${veg.name}", 1)' class='px-2'>+</button>` : `<input type='checkbox' onchange='toggleSelection("${veg.name}")'>`}
+                </div>`;
+            };
+            document.getElementById("section1").innerHTML = section1.map(veg => createVegItem(veg)).join(" ");
+            document.getElementById("section2").innerHTML = section2.map(veg => createVegItem(veg, true)).join(" ");
+            document.getElementById("section3").innerHTML = section3.map(veg => `<div class='p-2 bg-gray-200 rounded text-center'>
+                <img src='${veg.imageUrl}' class='w-full h-24 object-cover rounded mb-2'>
+                <p class='text-sm font-semibold'>${veg.name} (${veg.weight})</p>
+            </div>`).join(" ");
         }
         
-        function submitSelection() {
-            const phone = document.getElementById("customerPhone").value;
-            const name = document.getElementById("customerName").value;
-            const address = document.getElementById("customerAddress").value;
-            
-            if (!phone || !name || !address) {
-                alert("Please fill in all details.");
-                return;
-            }
-            
-            const selectedVeggies = Object.keys(selections).filter(veg => selections[veg] > 0).map(v => `${v} (${selections[v]})`).join(", ");
-            const orderNumber = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const orderDateTime = new Date().toLocaleString();
-            
-            const orderData = `Order Number=${orderNumber}&Order Date Time=${orderDateTime}&Items Selected=${selectedVeggies}&Customer Phone=${phone}`;
-            const customerData = `Customer Phone=${phone}&Customer Name=${name}&Customer Address=${address}`;
-            
-            fetch(orderSheetURL + "?" + orderData, { method: "POST" });
-            fetch(customerSheetURL + "?" + customerData, { method: "POST" });
-            
-            alert("Order placed successfully!");
+        function toggleSelection(veg) {
+            selections[veg] = selections[veg] ? 0 : 1;
+            updateTotal();
+        }
+        
+        function adjustSelection(veg, delta) {
+            if (!selections[veg]) selections[veg] = 0;
+            selections[veg] = Math.max(0, Math.min(2, selections[veg] + delta));
+            document.getElementById(`count_${veg}`).innerText = selections[veg];
+            updateTotal();
+        }
+        
+        function updateTotal() {
+            totalSelected = Object.values(selections).reduce((a, b) => a + b, 0);
+            document.getElementById("totalCount").innerText = totalSelected;
+            document.getElementById("submitButton").disabled = totalSelected > 14;
         }
         
         fetchVegetables();
