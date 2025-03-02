@@ -10,65 +10,104 @@
     <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 class="text-xl font-bold mb-4">Place Your Order</h2>
 
+        <!-- Phone Input -->
         <div class="mb-4">
             <label class="block text-sm font-semibold">Phone Number:</label>
-            <input type="text" id="customerPhone" class="w-full p-2 border rounded" placeholder="Enter phone number">
+            <input type="text" id="customerPhone" class="w-full p-2 border rounded" placeholder="Enter phone number" onblur="fetchCustomerDetails()">
         </div>
 
+        <!-- Customer Details -->
         <div id="customerDetails" class="hidden mb-4">
             <label class="block text-sm font-semibold">Name:</label>
-            <input type="text" id="customerName" class="w-full p-2 border rounded">
+            <input type="text" id="customerName" class="w-full p-2 border rounded" readonly>
             
             <label class="block text-sm font-semibold mt-2">Address:</label>
-            <input type="text" id="customerAddress" class="w-full p-2 border rounded">
+            <input type="text" id="customerAddress" class="w-full p-2 border rounded" readonly>
         </div>
 
+        <!-- Vegetable Selection -->
         <h3 class="text-lg font-semibold mt-4">Select Vegetables</h3>
-        <p class="text-sm text-gray-600 mb-2">Maximum 14 vegetables allowed.</p>
-        <div id="vegetableList" class="grid grid-cols-3 gap-4 mb-4"></div>
+        <p class="text-sm text-gray-600 mb-2">Max 16 items (Some can be selected twice).</p>
 
-        <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/14</p>
+        <h4 class="font-bold">Section 1 (One Selection per Item)</h4>
+        <div id="section1" class="grid grid-cols-3 gap-4 mb-4"></div>
+
+        <h4 class="font-bold">Section 2 (Can be Selected Twice)</h4>
+        <div id="section2" class="grid grid-cols-3 gap-4 mb-4"></div>
+
+        <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/16</p>
         <button onclick="submitOrder()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded" id="submitButton" disabled>Submit Order</button>
     </div>
 
     <script>
         const orderFormURL = "https://docs.google.com/forms/d/e/1FAIpQLSfmu4toOaZbFPzQbCDn5dJfVAJrp9ggMz5ChPnlMdDeJALpFA/formResponse";
+        const customerSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6ScA16RqJQwqQsusoqHTqTmoRfApVDoGiBm92NoIbvLDBkVd9wu_YHIgAiCcZkXjSCZ1fXjwnzv8N/pub?output=csv";
 
-        // Assume these entry IDs (replace them with actual ones from Google Form)
-        const entryOrderNumber = "entry.1234567890";  // Order Number
-        const entryOrderDateTime = "entry.9876543210"; // Order Date Time
-        const entryItemsSelected = "entry.5678901234"; // Items Selected
-        const entryCustomerPhone = "entry.1357924680"; // Customer Phone Number
-
-        let vegetables = [
-            { name: "Tomato", imageUrl: "https://via.placeholder.com/100" },
-            { name: "Potato", imageUrl: "https://via.placeholder.com/100" },
-            { name: "Carrot", imageUrl: "https://via.placeholder.com/100" },
-            { name: "Onion", imageUrl: "https://via.placeholder.com/100" }
-        ];
+        const section1Veggies = ["Tomato", "Carrot", "Onion", "Cabbage"];
+        const section2Veggies = ["Potato", "Brinjal", "Spinach", "Cauliflower"];
         let selectedVeggies = [];
 
         function renderVegetables() {
-            let vegList = document.getElementById("vegetableList");
-            vegList.innerHTML = "";
-            vegetables.forEach((veg, index) => {
-                vegList.innerHTML += `
+            let section1Div = document.getElementById("section1");
+            let section2Div = document.getElementById("section2");
+
+            section1Div.innerHTML = "";
+            section2Div.innerHTML = "";
+
+            section1Veggies.forEach(veg => {
+                section1Div.innerHTML += `
                     <div class='p-2 bg-gray-200 rounded text-center'>
-                        <img src='${veg.imageUrl}' class='w-full h-24 object-cover rounded mb-2'>
-                        <p class='text-sm font-semibold'>${veg.name}</p>
-                        <input type='checkbox' onchange='toggleVegetable("${veg.name}")'>
+                        <p class='text-sm font-semibold'>${veg}</p>
+                        <input type='checkbox' onchange='toggleVegetable("${veg}", 1)'>
+                    </div>`;
+            });
+
+            section2Veggies.forEach(veg => {
+                section2Div.innerHTML += `
+                    <div class='p-2 bg-gray-200 rounded text-center'>
+                        <p class='text-sm font-semibold'>${veg}</p>
+                        <select onchange='toggleVegetable("${veg}", 2)' class='w-full p-1 border rounded'>
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                        </select>
                     </div>`;
             });
         }
 
-        function toggleVegetable(vegName) {
-            if (selectedVeggies.includes(vegName)) {
+        function toggleVegetable(vegName, maxCount) {
+            let count = selectedVeggies.filter(v => v === vegName).length;
+
+            if (maxCount === 1) {
+                if (count > 0) selectedVeggies = selectedVeggies.filter(v => v !== vegName);
+                else if (selectedVeggies.length < 16) selectedVeggies.push(vegName);
+            } else {
+                let dropdown = event.target;
+                let selectedCount = parseInt(dropdown.value);
                 selectedVeggies = selectedVeggies.filter(v => v !== vegName);
-            } else if (selectedVeggies.length < 14) {
-                selectedVeggies.push(vegName);
+                for (let i = 0; i < selectedCount; i++) selectedVeggies.push(vegName);
             }
+
             document.getElementById("totalCount").innerText = selectedVeggies.length;
             document.getElementById("submitButton").disabled = selectedVeggies.length === 0;
+        }
+
+        function fetchCustomerDetails() {
+            let phone = document.getElementById("customerPhone").value;
+            if (!phone) return;
+
+            fetch(customerSheetURL)
+                .then(response => response.text())
+                .then(csvText => {
+                    let rows = csvText.split("\n").map(row => row.split(","));
+                    let customer = rows.find(row => row[0] === phone.trim());
+
+                    if (customer) {
+                        document.getElementById("customerName").value = customer[1];
+                        document.getElementById("customerAddress").value = customer[2];
+                        document.getElementById("customerDetails").classList.remove("hidden");
+                    }
+                });
         }
 
         function generateOrderNumber() {
@@ -78,7 +117,7 @@
         function submitOrder() {
             let phone = document.getElementById("customerPhone").value;
             if (!phone || selectedVeggies.length === 0) {
-                alert("Please enter phone number and select at least one vegetable.");
+                alert("Please enter phone number and select vegetables.");
                 return;
             }
 
@@ -87,21 +126,14 @@
             let itemsSelected = selectedVeggies.join(", ");
 
             let formData = new FormData();
-            formData.append(entryOrderNumber, orderNumber);
-            formData.append(entryOrderDateTime, orderDateTime);
-            formData.append(entryItemsSelected, itemsSelected);
-            formData.append(entryCustomerPhone, phone);
+            formData.append("entry.1234567890", orderNumber);
+            formData.append("entry.9876543210", orderDateTime);
+            formData.append("entry.5678901234", itemsSelected);
+            formData.append("entry.1357924680", phone);
 
-            fetch(orderFormURL, {
-                method: "POST",
-                body: formData
-            }).then(response => {
-                alert("Order Submitted Successfully!");
-                window.location.href = "confirmation.html"; // Redirect to confirmation page
-            }).catch(error => {
-                console.error("Error:", error);
-                alert("Failed to submit order. Try again.");
-            });
+            fetch(orderFormURL, { method: "POST", body: formData })
+                .then(() => alert("Order Submitted!"))
+                .catch(() => alert("Error submitting order"));
         }
 
         renderVegetables();
