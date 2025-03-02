@@ -58,16 +58,17 @@
             }
         }
         
-        function createVegetableSelection(section, containerId, maxSelection, isCheckbox) {
+        function createVegetableSelection(section, containerId, maxSelection, isCheckbox, isReadOnly) {
             const container = document.getElementById(containerId);
             section.forEach(veg => {
                 const div = document.createElement("div");
                 div.className = "flex flex-col items-center border p-2 rounded shadow bg-white";
                 div.innerHTML = `
-                    <img src="${veg.imageUrl}" alt="${veg.name}" class="w-16 h-16 mb-2 object-cover rounded" onerror="this.style.display='none'">
+                    <img src="${veg.imageUrl}" alt="${veg.name}" class="w-24 h-24 mb-2 object-cover rounded" onerror="this.src='https://via.placeholder.com/100'">
                     <label class="block text-center font-semibold">${veg.name}</label>
                     <p class="text-sm text-gray-500">Approx: ${veg.weight}</p>
-                    ${isCheckbox ? `<input type="checkbox" id="${veg.name}" onchange="toggleCheckbox('${veg.name}')">` : `
+                    ${isCheckbox ? `<input type="checkbox" id="${veg.name}" onchange="toggleCheckbox('${veg.name}')">` : 
+                    isReadOnly ? `<p class="text-green-600 font-semibold">Included</p>` : `
                     <div class="flex items-center mt-2">
                         <button onclick="changeSelection('${veg.name}', -1, ${maxSelection})" class="bg-red-500 text-white px-2 py-1 rounded">-</button>
                         <span id="${veg.name}" class="mx-2">0</span>
@@ -75,7 +76,7 @@
                     </div>`}
                 `;
                 container.appendChild(div);
-                selections[veg.name] = 0;
+                selections[veg.name] = isReadOnly ? 1 : 0;
             });
         }
         
@@ -112,9 +113,9 @@
         }
         
         function renderVegetables() {
-            createVegetableSelection(section1, "section1", 1, true);
-            createVegetableSelection(section2, "section2", 2, false);
-            createVegetableSelection(section3, "section3", 0, false);
+            createVegetableSelection(section1, "section1", 1, true, false)
+            createVegetableSelection(section2, "section2", 2, false, false);
+            createVegetableSelection(section3, "section3", 0, false, true);
         }
         
         fetchVegetables();
