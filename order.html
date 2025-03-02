@@ -3,63 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vegetable Selection</title>
+    <title>Order Vegetables</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-4">
     <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h2 class="text-xl font-bold mb-4">Select Your Vegetables (Max 14)</h2>
-        
+
         <p class="text-sm text-gray-600 mb-2">Section 1: Choose each vegetable once</p>
         <div id="section1" class="grid grid-cols-3 gap-4 mb-4"></div>
-        
+
         <p class="text-sm text-gray-600 mb-2">Section 2: Choose each vegetable up to twice</p>
         <div id="section2" class="grid grid-cols-3 gap-4 mb-4"></div>
-        
+
         <p class="text-sm text-gray-600 mb-2">Section 3: Complimentary Vegetables (Auto-included)</p>
         <div id="section3" class="grid grid-cols-3 gap-4 mb-4"></div>
-        
+
         <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/14</p>
-        <button onclick="submitSelection()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded" id="submitButton" disabled>Submit</button>
+        <button onclick="submitSelection()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded" id="submitButton" disabled>Submit Order</button>
     </div>
-    
+
     <script>
-        // Fetch customer details from localStorage
-        const customerPhone = localStorage.getItem("customerPhone");
-        const customerName = localStorage.getItem("customerName");
-        const customerAddress = localStorage.getItem("customerAddress");
+        const vegSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6ScA16RqJQwqQsusoqHTqTmoRfApVDoGiBm92NoIbvLDBkVd9wu_YHIgAiCcZkXjSCZ1fXjwnzv8N/pub?output=csv";
+        const orderFormURL = "https://docs.google.com/forms/d/e/YOUR_GOOGLE_FORM_ID/formResponse"; // Replace with actual Google Form ID
 
-        if (!customerPhone) {
-            alert("No customer details found. Please verify first.");
-            window.location.href = "customer.html";
-        }
+        let section1 = [], section2 = [], section3 = [], selections = [];
 
-        const vegSheetURL = "YOUR_GOOGLE_SHEET_CSV_URL";  // Replace with your Google Sheet CSV link
-        let section1 = [], section2 = [], section3 = [], selections = {};
-        
         async function fetchVegetables() {
             try {
                 const response = await fetch(vegSheetURL);
                 const data = await response.text();
                 const rows = data.split("\n").slice(1);
-                
+
                 rows.forEach(row => {
                     const cols = row.split(",");
                     const name = cols[0].trim();
                     const section = cols[1].trim();
                     const weight = cols[2]?.trim();
                     const imageUrl = cols[3]?.trim() || "https://via.placeholder.com/100";
-                    
+
                     if (section === "1") section1.push({ name, weight, imageUrl });
                     else if (section === "2") section2.push({ name, weight, imageUrl });
                     else if (section === "3") section3.push({ name, weight, imageUrl });
                 });
+
                 renderVegetables();
             } catch (error) {
                 console.error("Error fetching data: ", error);
             }
         }
-        
+
         function renderVegetables() {
             const createVegItem = (veg, isSection2 = false) => {
                 return `<div class='p-2 bg-gray-200 rounded text-center'>
@@ -75,7 +68,49 @@
                 <p class='text-sm font-semibold'>${veg.name} (${veg.weight})</p>
             </div>`).join(" ");
         }
-        
+
+        function toggleSelection(vegName) {
+            if (selections.includes(vegName)) {
+                selections = selections.filter(item => item !== vegName);
+            } else {
+                selections.push(vegName);
+            }
+            document.getElementById("totalCount").innerText = selections.length;
+            document.getElementById("submitButton").disabled = selections.length === 0;
+        }
+
+        function generateOrderNumber() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        async function submitSelection() {
+            const phone = localStorage.getItem("customerPhone");
+            if (!phone) {
+                alert("Customer details not found! Please enter phone number first.");
+                return;
+            }
+
+            const orderNumber = generateOrderNumber();
+            const orderDateTime = new Date().toLocaleString();
+            const selectedVeggies = selections.join(", ");
+
+            const formData = new FormData();
+            formData.append("entry.YOUR_ORDER_NUMBER_FIELD", orderNumber);
+            formData.append("entry.YOUR_ORDER_DATE_FIELD", orderDateTime);
+            formData.append("entry.YOUR_ITEMS_SELECTED_FIELD", selectedVeggies);
+            formData.append("entry.YOUR_PHONE_FIELD", phone);
+
+            try {
+                await fetch(orderFormURL, { method: "POST", body: formData });
+                alert("Order submitted successfully!");
+                selections = [];
+                document.getElementById("totalCount").innerText = "0";
+                document.getElementById("submitButton").disabled = true;
+            } catch (error) {
+                console.error("Error submitting order:", error);
+            }
+        }
+
         fetchVegetables();
     </script>
 </body>
