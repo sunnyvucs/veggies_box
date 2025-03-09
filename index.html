@@ -34,18 +34,24 @@
 
         async function fetchCustomerDetails() {
             const phone = document.getElementById("customerPhone").value.trim();
+            console.log("Fetching data for phone number: ", phone);
+
             const response = await fetch(customerSheetURL);
             const data = await response.text();
+            console.log("Received data from Google Sheet:", data);
+
             const rows = data.split("\n").slice(1).map(row => row.split(","));
 
             const customer = rows.find(row => row[1].trim() === phone);
 
             if (customer) {
+                console.log("Customer found:", customer);
                 document.getElementById("customerName").value = customer[2].trim();
                 document.getElementById("customerAddress").value = customer[3].trim();
                 document.getElementById("statusMessage").innerText = "Customer details found successfully.";
                 document.getElementById("proceedButton").classList.remove("hidden");
             } else {
+                console.log("Customer not found");
                 document.getElementById("statusMessage").innerText = "Customer details not found. Please fill the form below.";
             }
         }
