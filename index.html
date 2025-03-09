@@ -29,8 +29,10 @@
     </div>
 
     <script>
-        const customerSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6ScA16RqJQwqQsusoqHTqTmoRfApVDoGiBm92NoIbvLDBkVd9wu_YHIgAiCcZkXjSCZ1fXjwnzv8N/pub?output=csv";
-        const googleScriptURL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
+        const formBaseURL = "https://docs.google.com/forms/d/e/1FAIpQLSeROGq0_vmW-FzZYlgyj3ap42k3ZH7UmmAgFaU3m_fvnfn_YQ/formResponse?";
+        const phoneEntry = "entry.490871581";
+        const nameEntry = "entry.32390502";
+        const addressEntry = "entry.469776270";
 
         async function submitCustomerDetails() {
             const phone = document.getElementById("customerPhone").value.trim();
@@ -42,20 +44,12 @@
                 return;
             }
 
-            const formData = new FormData();
-            formData.append("phone", phone);
-            formData.append("name", name);
-            formData.append("address", address);
+            const formURL = `${formBaseURL}${phoneEntry}=${encodeURIComponent(phone)}&${nameEntry}=${encodeURIComponent(name)}&${addressEntry}=${encodeURIComponent(address)}`;
 
             try {
-                const response = await fetch(googleScriptURL, { method: "POST", body: formData });
-                const result = await response.json();
-                if (result.status === "success") {
-                    document.getElementById("statusMessage").innerText = "Customer details captured successfully.";
-                    document.getElementById("proceedButton").classList.remove("hidden");
-                } else {
-                    document.getElementById("statusMessage").innerText = "Failed to capture customer details. Try again.";
-                }
+                const response = await fetch(formURL, { method: "POST", mode: "no-cors" });
+                document.getElementById("statusMessage").innerText = "Customer details captured successfully.";
+                document.getElementById("proceedButton").classList.remove("hidden");
             } catch (error) {
                 console.error("Error submitting customer data: ", error);
                 document.getElementById("statusMessage").innerText = "Error submitting customer details. Please try again later.";
