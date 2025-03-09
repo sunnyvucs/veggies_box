@@ -13,7 +13,7 @@
         <label class="block text-sm font-semibold">Phone Number:</label>
         <input type="text" id="customerPhone" class="w-full p-2 border rounded mb-4" placeholder="Enter Phone Number">
 
-        <div id="customerDetails" class="hidden">
+        <div id="customerDetails">
             <label class="block text-sm font-semibold">Name:</label>
             <input type="text" id="customerName" class="w-full p-2 border rounded mb-2">
 
@@ -21,7 +21,7 @@
             <input type="text" id="customerAddress" class="w-full p-2 border rounded mb-4">
         </div>
 
-        <button onclick="checkCustomerDetails()" class="bg-blue-500 text-white px-4 py-2 rounded">Submit</button>
+        <button onclick="submitCustomerDetails()" class="bg-blue-500 text-white px-4 py-2 rounded">Submit</button>
 
         <p id="statusMessage" class="mt-4 text-center font-bold"></p>
 
@@ -30,42 +30,35 @@
 
     <script>
         const customerSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6ScA16RqJQwqQsusoqHTqTmoRfApVDoGiBm92NoIbvLDBkVd9wu_YHIgAiCcZkXjSCZ1fXjwnzv8N/pub?output=csv";
-        const formPrefillURL = "https://docs.google.com/forms/d/e/1FAIpQLSeROGq0_vmW-FzZYlgyj3ap42k3ZH7UmmAgFaU3m_fvnfn_YQ/viewform?usp=pp_url";
+        const googleScriptURL = "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL";
 
-        async function checkCustomerDetails() {
+        async function submitCustomerDetails() {
             const phone = document.getElementById("customerPhone").value.trim();
-            if (!phone) {
-                alert("Please enter a valid phone number.");
+            const name = document.getElementById("customerName").value.trim();
+            const address = document.getElementById("customerAddress").value.trim();
+
+            if (!phone || !name || !address) {
+                alert("Please fill all fields before submitting.");
                 return;
             }
 
+            const formData = new FormData();
+            formData.append("phone", phone);
+            formData.append("name", name);
+            formData.append("address", address);
+
             try {
-                const response = await fetch(customerSheetURL);
-                const data = await response.text();
-                const rows = data.split("\n").slice(1);
-
-                let found = false;
-                rows.forEach(row => {
-                    const cols = row.split(",");
-                    if (cols[1].trim() === phone) {
-                        document.getElementById("customerName").value = cols[2].trim();
-                        document.getElementById("customerAddress").value = cols[3].trim();
-                        document.getElementById("customerDetails").classList.remove("hidden");
-                        document.getElementById("statusMessage").innerText = "Customer details captured successfully.";
-                        document.getElementById("proceedButton").classList.remove("hidden");
-                        found = true;
-                    }
-                });
-
-                if (!found) {
-                    const name = encodeURIComponent(" ");
-                    const address = encodeURIComponent(" ");
-                    window.open(`${formPrefillURL}&entry.490871581=${phone}&entry.32390502=${name}&entry.469776270=${address}`, '_blank');
-                    document.getElementById("statusMessage").innerText = "Customer details could not be captured. Try again after submitting the form.";
+                const response = await fetch(googleScriptURL, { method: "POST", body: formData });
+                const result = await response.json();
+                if (result.status === "success") {
+                    document.getElementById("statusMessage").innerText = "Customer details captured successfully.";
+                    document.getElementById("proceedButton").classList.remove("hidden");
+                } else {
+                    document.getElementById("statusMessage").innerText = "Failed to capture customer details. Try again.";
                 }
             } catch (error) {
-                console.error("Error fetching customer data: ", error);
-                document.getElementById("statusMessage").innerText = "Error fetching customer details. Please try again later.";
+                console.error("Error submitting customer data: ", error);
+                document.getElementById("statusMessage").innerText = "Error submitting customer details. Please try again later.";
             }
         }
 
