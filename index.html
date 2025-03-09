@@ -3,140 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Place Your Order</title>
+    <title>Customer Details</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-4">
     <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
-        <h2 class="text-xl font-bold mb-4">Place Your Order</h2>
+        <h2 class="text-xl font-bold mb-4">Customer Details</h2>
 
-        <!-- Phone Input -->
-        <div class="mb-4">
-            <label class="block text-sm font-semibold">Phone Number:</label>
-            <input type="text" id="customerPhone" class="w-full p-2 border rounded" placeholder="Enter phone number" onblur="fetchCustomerDetails()">
-        </div>
+        <label class="block text-sm font-semibold">Phone Number:</label>
+        <input type="text" id="customerPhone" class="w-full p-2 border rounded mb-4" placeholder="Enter Phone Number">
 
-        <!-- Customer Details -->
-        <div id="customerDetails" class="hidden mb-4">
+        <div id="customerDetails" class="hidden">
             <label class="block text-sm font-semibold">Name:</label>
-            <input type="text" id="customerName" class="w-full p-2 border rounded" readonly>
-            
-            <label class="block text-sm font-semibold mt-2">Address:</label>
-            <input type="text" id="customerAddress" class="w-full p-2 border rounded" readonly>
+            <input type="text" id="customerName" class="w-full p-2 border rounded mb-2">
+
+            <label class="block text-sm font-semibold">Address:</label>
+            <input type="text" id="customerAddress" class="w-full p-2 border rounded mb-4">
         </div>
 
-        <!-- Vegetable Selection -->
-        <h3 class="text-lg font-semibold mt-4">Select Vegetables</h3>
-        <p class="text-sm text-gray-600 mb-2">Max 16 items (Some can be selected twice).</p>
+        <button onclick="checkCustomerDetails()" class="bg-blue-500 text-white px-4 py-2 rounded">Submit</button>
 
-        <h4 class="font-bold">Section 1 (One Selection per Item)</h4>
-        <div id="section1" class="grid grid-cols-3 gap-4 mb-4"></div>
+        <p id="statusMessage" class="mt-4 text-center font-bold"></p>
 
-        <h4 class="font-bold">Section 2 (Can be Selected Twice)</h4>
-        <div id="section2" class="grid grid-cols-3 gap-4 mb-4"></div>
-
-        <p class="font-semibold">Total Selected: <span id="totalCount">0</span>/16</p>
-        <button onclick="submitOrder()" class="mt-4 bg-blue-500 text-white px-4 py-2 rounded" id="submitButton" disabled>Submit Order</button>
+        <button id="proceedButton" onclick="redirectToVeggies()" class="hidden mt-4 bg-green-500 text-white px-4 py-2 rounded w-full">Proceed to Order Veggies</button>
     </div>
 
     <script>
-        const orderFormURL = "https://docs.google.com/forms/d/e/1FAIpQLSfmu4toOaZbFPzQbCDn5dJfVAJrp9ggMz5ChPnlMdDeJALpFA/formResponse";
         const customerSheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT6ScA16RqJQwqQsusoqHTqTmoRfApVDoGiBm92NoIbvLDBkVd9wu_YHIgAiCcZkXjSCZ1fXjwnzv8N/pub?output=csv";
+        const formPrefillURL = "https://docs.google.com/forms/d/e/1FAIpQLSeROGq0_vmW-FzZYlgyj3ap42k3ZH7UmmAgFaU3m_fvnfn_YQ/viewform?usp=pp_url";
 
-        const section1Veggies = ["Tomato", "Carrot", "Onion", "Cabbage"];
-        const section2Veggies = ["Potato", "Brinjal", "Spinach", "Cauliflower"];
-        let selectedVeggies = [];
-
-        function renderVegetables() {
-            let section1Div = document.getElementById("section1");
-            let section2Div = document.getElementById("section2");
-
-            section1Div.innerHTML = "";
-            section2Div.innerHTML = "";
-
-            section1Veggies.forEach(veg => {
-                section1Div.innerHTML += `
-                    <div class='p-2 bg-gray-200 rounded text-center'>
-                        <p class='text-sm font-semibold'>${veg}</p>
-                        <input type='checkbox' onchange='toggleVegetable("${veg}", 1)'>
-                    </div>`;
-            });
-
-            section2Veggies.forEach(veg => {
-                section2Div.innerHTML += `
-                    <div class='p-2 bg-gray-200 rounded text-center'>
-                        <p class='text-sm font-semibold'>${veg}</p>
-                        <select onchange='toggleVegetable("${veg}", 2)' class='w-full p-1 border rounded'>
-                            <option value="0">0</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                        </select>
-                    </div>`;
-            });
-        }
-
-        function toggleVegetable(vegName, maxCount) {
-            let count = selectedVeggies.filter(v => v === vegName).length;
-
-            if (maxCount === 1) {
-                if (count > 0) selectedVeggies = selectedVeggies.filter(v => v !== vegName);
-                else if (selectedVeggies.length < 16) selectedVeggies.push(vegName);
-            } else {
-                let dropdown = event.target;
-                let selectedCount = parseInt(dropdown.value);
-                selectedVeggies = selectedVeggies.filter(v => v !== vegName);
-                for (let i = 0; i < selectedCount; i++) selectedVeggies.push(vegName);
-            }
-
-            document.getElementById("totalCount").innerText = selectedVeggies.length;
-            document.getElementById("submitButton").disabled = selectedVeggies.length === 0;
-        }
-
-        function fetchCustomerDetails() {
-            let phone = document.getElementById("customerPhone").value;
-            if (!phone) return;
-
-            fetch(customerSheetURL)
-                .then(response => response.text())
-                .then(csvText => {
-                    let rows = csvText.split("\n").map(row => row.split(","));
-                    let customer = rows.find(row => row[0] === phone.trim());
-
-                    if (customer) {
-                        document.getElementById("customerName").value = customer[1];
-                        document.getElementById("customerAddress").value = customer[2];
-                        document.getElementById("customerDetails").classList.remove("hidden");
-                    }
-                });
-        }
-
-        function generateOrderNumber() {
-            return Math.random().toString(36).substring(2, 8).toUpperCase();
-        }
-
-        function submitOrder() {
-            let phone = document.getElementById("customerPhone").value;
-            if (!phone || selectedVeggies.length === 0) {
-                alert("Please enter phone number and select vegetables.");
+        async function checkCustomerDetails() {
+            const phone = document.getElementById("customerPhone").value.trim();
+            if (!phone) {
+                alert("Please enter a valid phone number.");
                 return;
             }
 
-            let orderNumber = generateOrderNumber();
-            let orderDateTime = new Date().toLocaleString();
-            let itemsSelected = selectedVeggies.join(", ");
+            try {
+                const response = await fetch(customerSheetURL);
+                const data = await response.text();
+                const rows = data.split("\n").slice(1);
 
-            let formData = new FormData();
-            formData.append("entry.1234567890", orderNumber);
-            formData.append("entry.9876543210", orderDateTime);
-            formData.append("entry.5678901234", itemsSelected);
-            formData.append("entry.1357924680", phone);
+                let found = false;
+                rows.forEach(row => {
+                    const cols = row.split(",");
+                    if (cols[1].trim() === phone) {
+                        document.getElementById("customerName").value = cols[2].trim();
+                        document.getElementById("customerAddress").value = cols[3].trim();
+                        document.getElementById("customerDetails").classList.remove("hidden");
+                        document.getElementById("statusMessage").innerText = "Customer details captured successfully.";
+                        document.getElementById("proceedButton").classList.remove("hidden");
+                        found = true;
+                    }
+                });
 
-            fetch(orderFormURL, { method: "POST", body: formData })
-                .then(() => alert("Order Submitted!"))
-                .catch(() => alert("Error submitting order"));
+                if (!found) {
+                    const name = encodeURIComponent(" ");
+                    const address = encodeURIComponent(" ");
+                    window.open(`${formPrefillURL}&entry.490871581=${phone}&entry.32390502=${name}&entry.469776270=${address}`, '_blank');
+                    document.getElementById("statusMessage").innerText = "Customer details could not be captured. Try again after submitting the form.";
+                }
+            } catch (error) {
+                console.error("Error fetching customer data: ", error);
+                document.getElementById("statusMessage").innerText = "Error fetching customer details. Please try again later.";
+            }
         }
 
-        renderVegetables();
+        function redirectToVeggies() {
+            const phone = document.getElementById("customerPhone").value;
+            window.location.href = `order.html?phone=${phone}`;
+        }
     </script>
 </body>
 </html>
