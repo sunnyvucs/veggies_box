@@ -21,40 +21,44 @@
             <input type="text" id="customerAddress" class="w-full p-2 border rounded mb-4">
         </div>
 
-        <button onclick="submitCustomerDetails()" class="bg-blue-500 text-white px-4 py-2 rounded">Submit</button>
+        <!-- Hidden Form for Submission -->
+        <form id="customerForm" action="https://docs.google.com/forms/d/e/1FAIpQLSeROGq0_vmW-FzZYlgyj3ap42k3ZH7UmmAgFaU3m_fvnfn_YQ/formResponse" method="POST" target="hidden_iframe" onsubmit="submissionSuccess()">
+            <input type="hidden" name="entry.490871581" id="formPhone">
+            <input type="hidden" name="entry.32390502" id="formName">
+            <input type="hidden" name="entry.469776270" id="formAddress">
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Submit</button>
+        </form>
 
         <p id="statusMessage" class="mt-4 text-center font-bold"></p>
 
         <button id="proceedButton" onclick="redirectToVeggies()" class="hidden mt-4 bg-green-500 text-white px-4 py-2 rounded w-full">Proceed to Order Veggies</button>
+
+        <!-- Invisible Iframe to Handle Form Submission -->
+        <iframe name="hidden_iframe" style="display:none;" onload="submissionSuccess()"></iframe>
     </div>
 
     <script>
-        const formBaseURL = "https://docs.google.com/forms/d/e/1FAIpQLSeROGq0_vmW-FzZYlgyj3ap42k3ZH7UmmAgFaU3m_fvnfn_YQ/formResponse?";
-        const phoneEntry = "entry.490871581";
-        const nameEntry = "entry.32390502";
-        const addressEntry = "entry.469776270";
+        function submissionSuccess() {
+            document.getElementById("statusMessage").innerText = "Customer details captured successfully.";
+            document.getElementById("proceedButton").classList.remove("hidden");
+        }
 
-        async function submitCustomerDetails() {
+        document.getElementById("customerForm").addEventListener("submit", function () {
             const phone = document.getElementById("customerPhone").value.trim();
             const name = document.getElementById("customerName").value.trim();
             const address = document.getElementById("customerAddress").value.trim();
 
             if (!phone || !name || !address) {
                 alert("Please fill all fields before submitting.");
+                event.preventDefault(); // Prevent empty submissions
                 return;
             }
 
-            const formURL = `${formBaseURL}${phoneEntry}=${encodeURIComponent(phone)}&${nameEntry}=${encodeURIComponent(name)}&${addressEntry}=${encodeURIComponent(address)}`;
-
-            try {
-                const response = await fetch(formURL, { method: "POST", mode: "no-cors" });
-                document.getElementById("statusMessage").innerText = "Customer details captured successfully.";
-                document.getElementById("proceedButton").classList.remove("hidden");
-            } catch (error) {
-                console.error("Error submitting customer data: ", error);
-                document.getElementById("statusMessage").innerText = "Error submitting customer details. Please try again later.";
-            }
-        }
+            // Populate form fields before submitting
+            document.getElementById("formPhone").value = phone;
+            document.getElementById("formName").value = name;
+            document.getElementById("formAddress").value = address;
+        });
 
         function redirectToVeggies() {
             const phone = document.getElementById("customerPhone").value;
